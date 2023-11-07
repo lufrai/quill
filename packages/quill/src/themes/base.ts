@@ -64,8 +64,8 @@ class BaseTheme extends Theme {
   pickers: Picker[];
   tooltip?: Tooltip;
 
-  constructor(quill: Quill, options: ThemeOptions) {
-    super(quill, options);
+  constructor(quill: Quill, options: ThemeOptions, name = 'ql-base') {
+    super(quill, options, name);
     const listener = (e: MouseEvent) => {
       if (!document.body.contains(quill.root)) {
         document.body.removeEventListener('click', listener);
@@ -250,7 +250,7 @@ class BaseTooltip extends Tooltip {
   }
 
   edit(mode = 'link', preview: string | null = null) {
-    this.root.classList.remove('ql-hidden');
+    this.show();
     this.root.classList.add('ql-editing');
     if (this.textbox == null) return;
 

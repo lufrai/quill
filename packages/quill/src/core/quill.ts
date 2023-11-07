@@ -318,6 +318,12 @@ class Quill {
     );
   }
 
+  destroy() {
+    this.emitter.emit(Emitter.events.DESTROY);
+    this.emitter.removeAllListeners();
+    instances.delete(this.container);
+  }
+
   disable() {
     this.enable(false);
   }

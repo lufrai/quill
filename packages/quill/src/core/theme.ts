@@ -25,7 +25,10 @@ class Theme {
   constructor(
     protected quill: Quill,
     protected options: ThemeOptions,
-  ) {}
+    public name: string,
+  ) {
+    this.quill.container.classList.add(this.name);
+  }
 
   init() {
     Object.keys(this.options.modules).forEach((name) => {
@@ -52,7 +55,7 @@ class Theme {
 }
 
 export interface ThemeConstructor {
-  new (quill: Quill, options: unknown): Theme;
+  new (quill: Quill, options: unknown, name?: string): Theme;
   DEFAULTS: ThemeOptions;
 }
 

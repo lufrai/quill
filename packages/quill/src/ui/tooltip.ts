@@ -1,65 +1,132 @@
 import type Quill from '../core.js';
 import type { Bounds } from '../core/selection.js';
+import Emitter from '../core/emitter.js';
+import {
+  computePosition,
+  autoUpdate,
+  inline,
+  offset,
+  shift,
+  flip,
+} from '@floating-ui/dom';
 
-const isScrollable = (el: Element) => {
-  const { overflowY } = getComputedStyle(el, null);
-  return overflowY !== 'visible' && overflowY !== 'clip';
+const wrappers: Record<string, HTMLDivElement> = {};
+const getWrapper = function (theme: string) {
+  if (wrappers[theme]) {
+    return wrappers[theme];
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.classList.add('ql-tooltips');
+  wrapper.classList.add(theme);
+  document.body.append(wrapper);
+  wrappers[theme] = wrapper;
+
+  return wrapper;
 };
 
 class Tooltip {
   quill: Quill;
   boundsContainer: HTMLElement;
   root: HTMLDivElement;
+  wrapper: HTMLDivElement;
+  cancelUpdate?: () => void;
+  showing: boolean = false;
 
   constructor(quill: Quill, boundsContainer?: HTMLElement) {
     this.quill = quill;
     this.boundsContainer = boundsContainer || document.body;
-    this.root = quill.addContainer('ql-tooltip');
+    this.root = document.createElement('div');
+    this.root.classList.add('ql-tooltip');
     // @ts-expect-error
     this.root.innerHTML = this.constructor.TEMPLATE;
-    if (isScrollable(this.quill.root)) {
-      this.quill.root.addEventListener('scroll', () => {
-        this.root.style.marginTop = `${-1 * this.quill.root.scrollTop}px`;
-      });
-    }
+    this.wrapper = getWrapper(this.quill.theme.name);
+    this.showing = true;
     this.hide();
+
+    this.quill.emitter.once(Emitter.events.DESTROY, () => {
+      this.hide();
+    });
   }
 
   hide() {
+    if (this.cancelUpdate) {
+      this.cancelUpdate();
+    }
+    if (!this.showing) {
+      return;
+    }
+    this.showing = false;
     this.root.classList.add('ql-hidden');
+    this.root.remove();
   }
 
   position(reference: Bounds) {
-    const left =
-      reference.left + reference.width / 2 - this.root.offsetWidth / 2;
-    // root.scrollTop should be 0 if scrollContainer !== root
-    const top = reference.bottom + this.quill.root.scrollTop;
-    this.root.style.left = `${left}px`;
-    this.root.style.top = `${top}px`;
-    this.root.classList.remove('ql-flip');
-    const containerBounds = this.boundsContainer.getBoundingClientRect();
-    const rootBounds = this.root.getBoundingClientRect();
-    let shift = 0;
-    if (rootBounds.right > containerBounds.right) {
-      shift = containerBounds.right - rootBounds.right;
-      this.root.style.left = `${left + shift}px`;
+    // Making the linter happy
+    reference;
+
+    if (this.cancelUpdate) {
+      this.cancelUpdate();
     }
-    if (rootBounds.left < containerBounds.left) {
-      shift = containerBounds.left - rootBounds.left;
-      this.root.style.left = `${left + shift}px`;
+
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
     }
-    if (rootBounds.bottom > containerBounds.bottom) {
-      const height = rootBounds.bottom - rootBounds.top;
-      const verticalShift = reference.bottom - reference.top + height;
-      this.root.style.top = `${top - verticalShift}px`;
-      this.root.classList.add('ql-flip');
+
+    if (selection.rangeCount < 1) {
+      return;
     }
-    return shift;
+
+    const range = selection.getRangeAt(0);
+
+    const element = {
+      getBoundingClientRect: () => range!.getBoundingClientRect(),
+      getClientRects: () => range!.getClientRects(),
+    };
+
+    const blot = this.quill.getLeaf(this.quill.getSelection()!.index);
+    const node = blot[0]!.domNode;
+
+    const cancel = autoUpdate(node.parentElement!, this.root, () => {
+      computePosition(element, this.root, {
+        placement: 'bottom',
+        middleware: [
+          inline(),
+          offset(10),
+          flip({
+            fallbackPlacements: ['top'],
+          }),
+          shift(),
+        ],
+      }).then(({ x, y, placement }) => {
+        Object.assign(this.root.style, {
+          left: `${x}px`,
+          top: `${y}px`,
+        });
+        if (placement === 'top') {
+          this.root.classList.add('ql-flip');
+        } else {
+          this.root.classList.remove('ql-flip');
+        }
+      });
+    });
+    this.cancelUpdate = function () {
+      cancel();
+      delete this.cancelUpdate;
+    };
+
+    return 0;
   }
 
   show() {
-    this.root.classList.remove('ql-editing');
+    if (this.showing) {
+      return;
+    }
+    this.showing = true;
     this.root.classList.remove('ql-hidden');
+    this.root.classList.remove('ql-editing');
+    this.wrapper.append(this.root);
   }
 }
 
