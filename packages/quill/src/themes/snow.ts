@@ -92,20 +92,19 @@ class SnowTooltip extends BaseTooltip {
 }
 
 class SnowTheme extends BaseTheme {
-  constructor(quill: Quill, options: ThemeOptions) {
+  constructor(quill: Quill, options: ThemeOptions, name = 'ql-snow') {
     if (
       options.modules.toolbar != null &&
       options.modules.toolbar.container == null
     ) {
       options.modules.toolbar.container = TOOLBAR_CONFIG;
     }
-    super(quill, options);
-    this.quill.container.classList.add('ql-snow');
+    super(quill, options, name);
   }
 
   extendToolbar(toolbar: Toolbar) {
     if (toolbar.container != null) {
-      toolbar.container.classList.add('ql-snow');
+      toolbar.container.classList.add(this.name);
       this.buildButtons(toolbar.container.querySelectorAll('button'), icons);
       this.buildPickers(toolbar.container.querySelectorAll('select'), icons);
       // @ts-expect-error

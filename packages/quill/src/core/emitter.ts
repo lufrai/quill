@@ -18,6 +18,7 @@ EVENTS.forEach((eventName) => {
 
 class Emitter extends EventEmitter<string> {
   static events = {
+    DESTROY: 'destroy',
     EDITOR_CHANGE: 'editor-change',
     SCROLL_BEFORE_UPDATE: 'scroll-before-update',
     SCROLL_BLOT_MOUNT: 'scroll-blot-mount',

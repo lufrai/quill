@@ -16,6 +16,8 @@
     "@babel/core": "^7.23.3",
     "@babel/preset-env": "^7.23.3",
     "@babel/preset-typescript": "^7.23.3",
+    "@floating-ui/core": "^1.5.1",
+    "@floating-ui/dom": "^1.5.3",
     "@playwright/test": "1.38.1",
     "@types/highlight.js": "^9.12.4",
     "@types/lodash-es": "^4.17.12",

@@ -108,15 +108,14 @@ class BubbleTooltip extends BaseTooltip {
 class BubbleTheme extends BaseTheme {
   tooltip: BubbleTooltip;
 
-  constructor(quill: Quill, options: ThemeOptions) {
+  constructor(quill: Quill, options: ThemeOptions, name = 'ql-bubble') {
     if (
       options.modules.toolbar != null &&
       options.modules.toolbar.container == null
     ) {
       options.modules.toolbar.container = TOOLBAR_CONFIG;
     }
-    super(quill, options);
-    this.quill.container.classList.add('ql-bubble');
+    super(quill, options, name);
   }
 
   extendToolbar(toolbar: Toolbar) {
