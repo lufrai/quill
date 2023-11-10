@@ -28,12 +28,17 @@ class BubbleTooltip extends BaseTooltip {
     this.quill.on(
       Emitter.events.EDITOR_CHANGE,
       (type, range, oldRange, source) => {
-        if (type !== Emitter.events.SELECTION_CHANGE) return;
-        if (
-          range != null &&
-          range.length > 0 &&
-          source === Emitter.sources.USER
-        ) {
+        // Making the linter happy
+        oldRange;
+        source;
+        const currentRange =
+          type === Emitter.events.SELECTION_CHANGE
+            ? range
+            : this.quill.getSelection();
+        const rangeSelected = currentRange != null && currentRange.length > 0;
+        const show = rangeSelected || document.activeElement === this.textbox;
+
+        if (show && !this.showing && type === Emitter.events.SELECTION_CHANGE) {
           this.show();
           // Lock our width so we will expand beyond our offsetParent boundaries
           this.root.style.left = '0px';
@@ -57,10 +62,9 @@ class BubbleTooltip extends BaseTooltip {
               this.position(indexBounds);
             }
           }
-        } else if (
-          document.activeElement !== this.textbox &&
-          this.quill.hasFocus()
-        ) {
+        }
+
+        if (!show && this.showing) {
           this.hide();
         }
       },

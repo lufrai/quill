@@ -1,18 +1,39 @@
 import { EventEmitter } from 'eventemitter3';
 import instances from './instances';
 import logger from './logger';
+import type Quill from './quill';
 
 const debug = logger('quill:events');
-const EVENTS = ['selectionchange', 'mousedown', 'mouseup', 'click'];
+const EVENTS = ['selectionchange', 'mousedown', 'mouseup', 'click'] as const;
+
+let lastInstance: Quill | undefined | null;
+let currentInstance: Quill | undefined | null;
 
 EVENTS.forEach((eventName) => {
-  document.addEventListener(eventName, (...args) => {
-    Array.from(document.querySelectorAll('.ql-container')).forEach((node) => {
-      const quill = instances.get(node);
-      if (quill && quill.emitter) {
-        quill.emitter.handleDOM(...args);
+  document.addEventListener(eventName, function (...args) {
+    const [event] = args;
+
+    const hasInstances = lastInstance || currentInstance;
+    if (eventName === 'selectionchange' && !hasInstances) {
+      return;
+    }
+    if (eventName !== 'selectionchange' && event.target) {
+      const node = (event.target as HTMLElement).closest('.ql-container');
+      const newInstance = node && instances.get(node);
+      if (newInstance) {
+        if (newInstance !== currentInstance) {
+          lastInstance = currentInstance;
+        }
+        currentInstance = newInstance;
       }
-    });
+    }
+
+    if (lastInstance && lastInstance.emitter) {
+      lastInstance.emitter.handleDOM(...args);
+    }
+    if (currentInstance && currentInstance.emitter) {
+      currentInstance.emitter.handleDOM(...args);
+    }
   });
 });
 
@@ -55,10 +76,8 @@ class Emitter extends EventEmitter<string> {
   }
 
   handleDOM(event: Event, ...args: unknown[]) {
-    (this.domListeners[event.type] || []).forEach(({ node, handler }) => {
-      if (event.target === node || node.contains(event.target as Node)) {
-        handler(event, ...args);
-      }
+    (this.domListeners[event.type] || []).forEach(({ handler }) => {
+      handler(event, ...args);
     });
   }
 

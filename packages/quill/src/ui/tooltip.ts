@@ -10,12 +10,7 @@ import {
   flip,
 } from '@floating-ui/dom';
 
-const isScrollable = (el: Element) => {
-  const { overflowY } = getComputedStyle(el, null);
-  return overflowY !== 'visible' && overflowY !== 'clip';
-};
-
-const wrappers: Record<string, HTMLElement> = {};
+const wrappers: Record<string, HTMLDivElement> = {};
 const getWrapper = function (theme: string) {
   if (wrappers[theme]) {
     return wrappers[theme];
@@ -34,7 +29,9 @@ class Tooltip {
   quill: Quill;
   boundsContainer: HTMLElement;
   root: HTMLDivElement;
+  wrapper: HTMLDivElement;
   cancelUpdate?: () => void;
+  showing: boolean = false;
 
   constructor(quill: Quill, boundsContainer?: HTMLElement) {
     this.quill = quill;
@@ -43,19 +40,12 @@ class Tooltip {
     this.root.classList.add('ql-tooltip');
     // @ts-expect-error
     this.root.innerHTML = this.constructor.TEMPLATE;
-    if (isScrollable(this.quill.root)) {
-      this.quill.root.addEventListener('scroll', () => {
-        this.root.style.marginTop = `${-1 * this.quill.root.scrollTop}px`;
-      });
-    }
-
-    const wrapper = getWrapper(this.quill.theme.name);
-    wrapper.append(this.root);
+    this.wrapper = getWrapper(this.quill.theme.name);
+    this.showing = true;
     this.hide();
 
     this.quill.emitter.once(Emitter.events.DESTROY, () => {
       this.hide();
-      this.root.remove();
     });
   }
 
@@ -63,7 +53,12 @@ class Tooltip {
     if (this.cancelUpdate) {
       this.cancelUpdate();
     }
+    if (!this.showing) {
+      return;
+    }
+    this.showing = false;
     this.root.classList.add('ql-hidden');
+    this.root.remove();
   }
 
   position(reference: Bounds) {
@@ -93,7 +88,7 @@ class Tooltip {
     const blot = this.quill.getLeaf(this.quill.getSelection()!.index);
     const node = blot[0]!.domNode;
 
-    this.cancelUpdate = autoUpdate(node.parentElement!, this.root, () => {
+    const cancel = autoUpdate(node.parentElement!, this.root, () => {
       computePosition(element, this.root, {
         placement: 'bottom',
         middleware: [
@@ -107,7 +102,7 @@ class Tooltip {
       }).then(({ x, y, placement }) => {
         Object.assign(this.root.style, {
           left: `${x}px`,
-          top: `${y + this.quill.root.scrollTop}px`,
+          top: `${y}px`,
         });
         if (placement === 'top') {
           this.root.classList.add('ql-flip');
@@ -116,13 +111,22 @@ class Tooltip {
         }
       });
     });
+    this.cancelUpdate = function () {
+      cancel();
+      delete this.cancelUpdate;
+    };
 
     return 0;
   }
 
   show() {
-    this.root.classList.remove('ql-editing');
+    if (this.showing) {
+      return;
+    }
+    this.showing = true;
     this.root.classList.remove('ql-hidden');
+    this.root.classList.remove('ql-editing');
+    this.wrapper.append(this.root);
   }
 }
 
