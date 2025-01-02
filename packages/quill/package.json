@@ -1,11 +1,11 @@
 {
-  "name": "quill",
+  "name": "@lufrai/quill",
   "version": "2.0.3",
   "description": "Your powerful, rich text editor",
   "author": "Jason Chen <jhchen7@gmail.com>",
   "homepage": "https://quilljs.com",
-  "main": "quill.js",
-  "type": "module",
+  "main": "dist/dist/quill.js",
+  "types": "./dist/types/core.d.ts",
   "dependencies": {
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21",

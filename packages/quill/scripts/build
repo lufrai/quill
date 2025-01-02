@@ -13,6 +13,7 @@ mv $TMPDIR/src/* $DIST
 rm -rf $TMPDIR
 npx babel src --out-dir $DIST --copy-files --no-copy-ignored --extensions .ts --source-maps
 npx webpack -- --mode $1
+npx tsc -d --noEmit false --emitDeclarationOnly --outDir dist/types src/core.ts
 # https://github.com/webpack-contrib/mini-css-extract-plugin/issues/151
 rm -rf $DIST/dist/*.css.js $DIST/dist/*.css.js.*
 cp package.json $DIST
